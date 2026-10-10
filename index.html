@@ -419,7 +419,7 @@
           <button class="stage-btn" onclick="teleportToStage(0)">1. 무지개</button>
           <button class="stage-btn" onclick="teleportToStage(1)">2. 킬 레이저</button>
           <button class="stage-btn" onclick="teleportToStage(2)">3. 사라짐</button>
-          <button class="stage-btn" onclick="teleportToStage(3)">4. 윈드밀</button>
+          <button class="stage-btn" onclick="teleportToStage(3)">4. 화염 윈드밀</button>
           <button class="stage-btn" onclick="teleportToStage(4)">5. 나선계단</button>
           <button class="stage-btn" onclick="teleportToStage(5)">6. 트로피</button>
         </div>
@@ -1104,26 +1104,33 @@
       // 대형 원형 발판
       const spinPlatform = addPlatform(0, curY, curZ, 10, 0.6, 10, 0x1e293b);
 
-      // 회전하는 킬 바
+      // 회전하는 화염 킬 바
       const spinnerGroup = new THREE.Group();
-      spinnerGroup.position.set(0, curY + 0.7, curZ);
+      spinnerGroup.position.set(0, curY + 0.3, curZ);
       scene.add(spinnerGroup);
 
-      const centerPost = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 1.2), getMat(0x64748b));
+      const centerPost = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.2), getMat(0x64748b));
+      centerPost.position.y = 0.6;
       spinnerGroup.add(centerPost);
 
-      const killBar1 = new THREE.Mesh(new THREE.BoxGeometry(9.2, 0.45, 0.45), getMat(0xff0033, 0xff0033));
-      killBar1.position.y = 0.2;
+      // 불꽃/화염 느낌의 네온 레드-오렌지 바 (점프로 깔끔하게 뛰어넘을 수 있는 높이)
+      const killBar1 = new THREE.Mesh(new THREE.BoxGeometry(9.0, 0.35, 0.35), getMat(0xff1e00, 0xff3b00));
+      killBar1.position.y = 0.25;
       spinnerGroup.add(killBar1);
+
+      // 화염 에너지 코어 이펙트 장식
+      const barCore = new THREE.Mesh(new THREE.BoxGeometry(8.8, 0.15, 0.15), getMat(0xffea00, 0xffb703));
+      barCore.position.y = 0.25;
+      spinnerGroup.add(barCore);
 
       // 회전 바를 플랫폼 검사 목록에 등록
       platforms.push({
         mesh: killBar1,
         group: spinnerGroup,
-        w: 9.2, h: 0.45, d: 0.45,
+        w: 9.0, h: 0.35, d: 0.35,
         isLaser: true,
         isSpinning: true,
-        speed: 1.6,
+        speed: 1.2, // 초등 5학년도 쾌적하게 점프 타이밍 맞출 수 있는 속도 (기존 1.6에서 최적화)
         box: new THREE.Box3()
       });
 
@@ -1273,37 +1280,47 @@
       addPlatform(0, curY, curZ, 12, 0.6, 12, 0x0f172a);
 
       const crossSpinnerGroup = new THREE.Group();
-      crossSpinnerGroup.position.set(0, curY + 0.7, curZ);
+      crossSpinnerGroup.position.set(0, curY + 0.3, curZ);
       scene.add(crossSpinnerGroup);
 
-      const crossPost = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.3), getMat(0x64748b));
+      const crossPost = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 1.2), getMat(0x64748b));
+      crossPost.position.y = 0.6;
       crossSpinnerGroup.add(crossPost);
 
-      // 4방향 십자 킬 레이저 바
-      const killBarCross1 = new THREE.Mesh(new THREE.BoxGeometry(11.2, 0.45, 0.45), getMat(0xff0033, 0xff0033));
-      killBarCross1.position.y = 0.2;
+      // 4방향 십자 킬 레이저 바 (점프로 도약 회피 가능한 최적 높이)
+      const killBarCross1 = new THREE.Mesh(new THREE.BoxGeometry(11.0, 0.35, 0.35), getMat(0xff0033, 0xff0033));
+      killBarCross1.position.y = 0.25;
       crossSpinnerGroup.add(killBarCross1);
 
-      const killBarCross2 = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 11.2), getMat(0xff0033, 0xff0033));
-      killBarCross2.position.y = 0.2;
+      const killBarCross2 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 11.0), getMat(0xff0033, 0xff0033));
+      killBarCross2.position.y = 0.25;
       crossSpinnerGroup.add(killBarCross2);
+
+      // 네온 시안 에너지 코어
+      const coreCross1 = new THREE.Mesh(new THREE.BoxGeometry(10.8, 0.15, 0.15), getMat(0x00f5ff, 0x00d4ff));
+      coreCross1.position.y = 0.25;
+      crossSpinnerGroup.add(coreCross1);
+
+      const coreCross2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 10.8), getMat(0x00f5ff, 0x00d4ff));
+      coreCross2.position.y = 0.25;
+      crossSpinnerGroup.add(coreCross2);
 
       platforms.push({
         mesh: killBarCross1,
         group: crossSpinnerGroup,
-        w: 11.2, h: 0.45, d: 0.45,
+        w: 11.0, h: 0.35, d: 0.35,
         isLaser: true,
         isSpinning: true,
-        speed: 2.0,
+        speed: 1.2,
         box: new THREE.Box3()
       });
       platforms.push({
         mesh: killBarCross2,
         group: crossSpinnerGroup,
-        w: 0.45, h: 0.45, d: 11.2,
+        w: 0.35, h: 0.35, d: 11.0,
         isLaser: true,
         isSpinning: true,
-        speed: 2.0,
+        speed: 1.2,
         box: new THREE.Box3()
       });
 
@@ -1640,8 +1657,10 @@
       const actualSpeed = (speedBoostTimer > 0) ? player.speed * 1.85 : player.speed;
 
       // 동적 장애물 업데이트 (회전 바, 사라지는 발판, 무빙 발판)
+      const rotatedGroups = new Set();
       platforms.forEach(p => {
-        if (p.isSpinning && p.group) {
+        if (p.isSpinning && p.group && !rotatedGroups.has(p.group)) {
+          rotatedGroups.add(p.group);
           p.group.rotation.y += p.speed * delta;
         }
 
@@ -1787,7 +1806,40 @@
         if (p.isFakeGlass && p.isBroken) continue;
 
         if (p.isSpinning && p.group) {
-          p.box.setFromObject(p.mesh);
+          // 회전 킬 바 정밀 충돌 판정 (Three.js setFromObject AABB 대각 확장 왜곡 버그 해결)
+          // 1. 플레이어 위치를 회전축(그룹) 기준 로컬 2D 평면으로 역회전 변환
+          const dx = nextPos.x - p.group.position.x;
+          const dz = nextPos.z - p.group.position.z;
+          const rot = -p.group.rotation.y;
+          const cosR = Math.cos(rot);
+          const sinR = Math.sin(rot);
+          const lx = dx * cosR - dz * sinR;
+          const lz = dx * sinR + dz * cosR;
+
+          // 2. 바의 Y축 높이 판정 (바 높이 0.35m, 점프 시 상단 여유 유예 0.08m)
+          const barCenterY = p.group.position.y + p.mesh.position.y;
+          const barMinY = barCenterY - p.h * 0.5;
+          const barMaxY = barCenterY + p.h * 0.5;
+          const yOverlap = (nextPos.y < barMaxY - 0.08) && ((nextPos.y + player.height) > barMinY + 0.08);
+
+          // 3. 로컬 직사각형과 플레이어 원형 피격 판정 (자비로운 0.72x 반경으로 억울한 판정 방지)
+          const halfW = p.w * 0.5;
+          const halfD = p.d * 0.5;
+          const clampX = Math.max(-halfW, Math.min(halfW, lx - p.mesh.position.x));
+          const clampZ = Math.max(-halfD, Math.min(halfD, lz - p.mesh.position.z));
+          const diffX = (lx - p.mesh.position.x) - clampX;
+          const diffZ = (lz - p.mesh.position.z) - clampZ;
+          const hitRadius = player.radius * 0.72;
+          const xzOverlap = (diffX * diffX + diffZ * diffZ) <= (hitRadius * hitRadius);
+
+          if (yOverlap && xzOverlap) {
+            if (p.isLaser) {
+              respawn();
+              return;
+            }
+          }
+          // 회전 킬 바는 밟는 발판이 아니므로 착지 판정 건너뜀
+          continue;
         } else {
           p.box.setFromCenterAndSize(p.mesh.position, new THREE.Vector3(p.w, p.h, p.d));
         }
