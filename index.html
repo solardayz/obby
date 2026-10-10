@@ -992,6 +992,7 @@
         mesh: meshL, w: 2.4, h: 0.3, d: 2.4,
         isFakeGlass: !leftIsReal,
         isBroken: false,
+        stageIdx: 9,
         box: new THREE.Box3()
       };
       platforms.push(platL);
@@ -1006,6 +1007,7 @@
         mesh: meshR, w: 2.4, h: 0.3, d: 2.4,
         isFakeGlass: leftIsReal,
         isBroken: false,
+        stageIdx: 9,
         box: new THREE.Box3()
       };
       platforms.push(platR);
@@ -1016,6 +1018,7 @@
     function addWarpPortal(x, y, z) {
       const portalPad = addPlatform(x, y, z, 5.0, 0.45, 5.0, 0x1e1b4b);
       portalPad.isPortal = true;
+      portalPad.stageIdx = 5;
 
       // 회전하는 보라색 포탈 링
       const portalGeo = new THREE.TorusGeometry(1.9, 0.32, 16, 32);
@@ -1036,6 +1039,9 @@
 
     function addCheckpointPad(idx, x, y, z) {
       const pad = addPlatform(x, y, z, 5, 0.4, 5, idx >= 6 ? 0x0f172a : 0x1e293b);
+      pad.isCheckpointPad = true;
+      pad.stageIdx = idx;
+
       // 체크포인트 빛나는 링
       const ringGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.45, 24);
       const ringMat = new THREE.MeshLambertMaterial({ color: idx === 0 ? 0x10b981 : 0xf59e0b, emissive: idx === 0 ? 0x059669 : 0x000000 });
@@ -1051,7 +1057,7 @@
       flag.position.set(x - 1.4, y + 3.1, z - 2);
       scene.add(flag);
 
-      checkpoints.push({ idx, pos: new THREE.Vector3(x, y + 1.2, z), ring: ringMesh });
+      checkpoints.push({ idx, pos: new THREE.Vector3(x, y + 1.2, z), ring: ringMesh, x, y, z });
     }
 
     function buildObby() {
@@ -1066,7 +1072,8 @@
         const xOffset = Math.sin(i * 1.1) * 3.2;
         curZ -= 4.6;
         curY += 0.4;
-        addPlatform(xOffset, curY, curZ, 2.8, 0.5, 2.8, col);
+        const p = addPlatform(xOffset, curY, curZ, 2.8, 0.5, 2.8, col);
+        p.stageIdx = 0;
       });
 
       // ── STAGE 2: 빨간 킬 레이저 점프 구간 ──
@@ -1077,7 +1084,8 @@
       for (let i = 0; i < 4; i++) {
         curZ -= 5.0;
         // 안전 발판
-        addPlatform(0, curY, curZ, 3.2, 0.5, 3.2, 0x334155);
+        const p = addPlatform(0, curY, curZ, 3.2, 0.5, 3.2, 0x334155);
+        p.stageIdx = 1;
         // 발판 사이의 킬 레이저 바
         addPlatform(0, curY + 0.7, curZ + 2.5, 4.5, 0.35, 0.35, 0xff0033, true);
       }
@@ -1092,7 +1100,8 @@
       vanishCols.forEach((col, i) => {
         curZ -= 4.2;
         const xOff = (i % 2 === 0 ? 1 : -1) * 2.2;
-        addPlatform(xOff, curY, curZ, 2.6, 0.35, 2.6, col, false, true);
+        const p = addPlatform(xOff, curY, curZ, 2.6, 0.35, 2.6, col, false, true);
+        p.stageIdx = 2;
       });
 
       // ── STAGE 4: 회전 윈드밀 킬 바 (Spinning Bars) ──
@@ -1103,6 +1112,7 @@
       curZ -= 8;
       // 대형 원형 발판
       const spinPlatform = addPlatform(0, curY, curZ, 10, 0.6, 10, 0x1e293b);
+      spinPlatform.stageIdx = 3;
 
       // 회전하는 화염 킬 바
       const spinnerGroup = new THREE.Group();
@@ -1146,12 +1156,15 @@
         const sz = curZ - 3 - Math.cos(ang) * stairRadius;
         curY += 0.65;
         const sPlat = addPlatform(sx, curY, sz, 2.2, 0.4, 2.2, 0x6366f1);
+        sPlat.stageIdx = 4;
       }
 
       // ── STAGE 6: 최종 승리의 트로피 타워 (GOAL!) ──
       curZ -= 15;
       curY += 1.0;
+      addCheckpointPad(5, 0, curY, curZ + 8);
       const winPlat = addPlatform(0, curY, curZ, 12, 1.0, 12, 0xf59e0b);
+      winPlat.stageIdx = 5;
 
       // 거대 황금 트로피
       const trophyGroup = new THREE.Group();
@@ -1174,6 +1187,7 @@
         w: 12, h: 1.0, d: 12,
         isGoal: true,
         isWorld2Goal: false,
+        stageIdx: 5,
         box: new THREE.Box3()
       });
 
@@ -1190,20 +1204,24 @@
       addCheckpointPad(6, 0, curY, curZ);
 
       // 첫 번째 트램펄린 (지상 -> 고공 섬)
-      addBouncePad(0, curY, curZ - 7, 3.4, 3.4, 25.0);
+      const b1 = addBouncePad(0, curY, curZ - 7, 3.4, 3.4, 25.0);
+      b1.stageIdx = 6;
 
       // 공중 높은 구름 발판 1
       curZ -= 20;
       curY += 6.5;
-      addPlatform(0, curY, curZ, 3.8, 0.5, 3.8, 0x10b981);
+      const c1 = addPlatform(0, curY, curZ, 3.8, 0.5, 3.8, 0x10b981);
+      c1.stageIdx = 6;
 
       // 두 번째 트램펄린 (고공 -> 초고공 아일랜드)
-      addBouncePad(0, curY, curZ - 7, 3.4, 3.4, 26.5);
+      const b2 = addBouncePad(0, curY, curZ - 7, 3.4, 3.4, 26.5);
+      b2.stageIdx = 6;
 
       // 초고공 아일랜드 2
       curZ -= 22;
       curY += 7.0;
-      addPlatform(0, curY, curZ, 4.2, 0.5, 4.2, 0x06b6d4);
+      const c2 = addPlatform(0, curY, curZ, 4.2, 0.5, 4.2, 0x06b6d4);
+      c2.stageIdx = 6;
 
       // ── STAGE 8: 초고속 스피드 부스터 질주 (Speed Boost Runway) ──
       curZ -= 10;
@@ -1212,16 +1230,19 @@
 
       // 부스터 가속 활주로
       curZ -= 6;
-      addSpeedBoostPad(0, curY, curZ, 3.2, 4.0);
+      const sb1 = addSpeedBoostPad(0, curY, curZ, 3.2, 4.0);
+      sb1.stageIdx = 7;
       curZ -= 5;
-      addSpeedBoostPad(0, curY, curZ, 3.2, 4.0);
+      const sb2 = addSpeedBoostPad(0, curY, curZ, 3.2, 4.0);
+      sb2.stageIdx = 7;
 
       // 거대 낭떠러지 + 아래에 킬 레이저 그리드
       addPlatform(0, curY - 2.5, curZ - 9, 8.0, 0.35, 14.0, 0xff0033, true);
 
       // 부스터로만 날아갈 수 있는 착지 섬 (14미터 도약!)
       curZ -= 18;
-      addPlatform(0, curY, curZ, 4.5, 0.5, 4.5, 0x3b82f6);
+      const land1 = addPlatform(0, curY, curZ, 4.5, 0.5, 4.5, 0x3b82f6);
+      land1.stageIdx = 7;
 
       // ── STAGE 9: 좌우 & 상하 무빙 발판 (Moving Platforms) ──
       curZ -= 9;
@@ -1230,26 +1251,31 @@
 
       // 무빙 발판 1 (좌우 흔들림)
       curZ -= 8;
-      addMovingPlatform(0, curY, curZ, 3.0, 0.45, 3.0, 0xa855f7, 'x', 4.5, 1.8);
+      const m1 = addMovingPlatform(0, curY, curZ, 3.0, 0.45, 3.0, 0xa855f7, 'x', 4.5, 1.8);
+      m1.stageIdx = 8;
 
       // 중간 휴식 발판
       curZ -= 8;
-      addPlatform(0, curY + 0.5, curZ, 2.8, 0.45, 2.8, 0x334155);
+      const mRest = addPlatform(0, curY + 0.5, curZ, 2.8, 0.45, 2.8, 0x334155);
+      mRest.stageIdx = 8;
 
       // 무빙 발판 2 (앞뒤 왕복)
       curZ -= 8;
       curY += 0.5;
-      addMovingPlatform(0, curY, curZ, 3.0, 0.45, 3.0, 0xec4899, 'z', 3.8, 1.6);
+      const m2 = addMovingPlatform(0, curY, curZ, 3.0, 0.45, 3.0, 0xec4899, 'z', 3.8, 1.6);
+      m2.stageIdx = 8;
 
       // 무빙 발판 3 (엘리베이터 상하 수직 이동)
       curZ -= 9;
       curY += 1.5;
-      addMovingPlatform(0, curY, curZ, 3.2, 0.45, 3.2, 0xfacc15, 'y', 3.2, 1.4);
+      const m3 = addMovingPlatform(0, curY, curZ, 3.2, 0.45, 3.2, 0xfacc15, 'y', 3.2, 1.4);
+      m3.stageIdx = 8;
 
       // 엘리베이터 상단 착지 섬
       curZ -= 8;
       curY += 4.5;
-      addPlatform(0, curY, curZ, 4.0, 0.5, 4.0, 0x1e293b);
+      const mTop = addPlatform(0, curY, curZ, 4.0, 0.5, 4.0, 0x1e293b);
+      mTop.stageIdx = 8;
 
       // ── STAGE 10: 오징어 게임 유리 징검다리 (Squid Game Glass Bridge) ──
       curZ -= 8;
@@ -1268,7 +1294,8 @@
 
       // 유리다리 출구 안전 발판
       curZ -= 26;
-      addPlatform(0, curY, curZ, 4.5, 0.5, 4.5, 0x22c55e);
+      const gExit = addPlatform(0, curY, curZ, 4.5, 0.5, 4.5, 0x22c55e);
+      gExit.stageIdx = 9;
 
       // ── STAGE 11: 더블 십자 회전 킬 레이저 아레나 (Double Cross Spinner) ──
       curZ -= 9;
@@ -1277,7 +1304,8 @@
 
       curZ -= 10;
       // 대형 회전 아레나
-      addPlatform(0, curY, curZ, 12, 0.6, 12, 0x0f172a);
+      const crossArena = addPlatform(0, curY, curZ, 12, 0.6, 12, 0x0f172a);
+      crossArena.stageIdx = 10;
 
       const crossSpinnerGroup = new THREE.Group();
       crossSpinnerGroup.position.set(0, curY + 0.3, curZ);
@@ -1332,6 +1360,7 @@
       curZ -= 14;
       curY += 1.5;
       const winPlat2 = addPlatform(0, curY, curZ, 14, 1.2, 14, 0x1e1b4b);
+      winPlat2.stageIdx = 11;
 
       // 거대 다이아몬드 트로피 & 왕관 그룹
       const diamondGroup = new THREE.Group();
@@ -1513,10 +1542,25 @@
       if (boostEl) boostEl.classList.remove('show');
     }
 
+    function activateCheckpoint(idx) {
+      if (idx > checkpointIdx) {
+        checkpointIdx = idx;
+        playCheckpointSound();
+        showCheckpointToast(idx);
+        document.getElementById('stage-badge').innerText = `STAGE ${idx + 1}` + (idx >= 6 ? ' (W2)' : '');
+        checkpoints.forEach(cp => {
+          if (cp.idx <= idx) {
+            cp.ring.material.color.setHex(0x10b981);
+            cp.ring.material.emissive.setHex(0x059669);
+          }
+        });
+      }
+    }
+
     function respawn() {
       playOofSound();
       deathCount++;
-      const cp = checkpoints[checkpointIdx];
+      const cp = checkpoints.find(c => c.idx === checkpointIdx) || checkpoints[0];
       if (cp) {
         player.pos.copy(cp.pos);
       }
@@ -1524,6 +1568,7 @@
       playerGroup.position.copy(player.pos);
       coyoteTimer = 0;
       jumpBufferTimer = 0;
+      walkAnimTime = 0;
       resetDynamicPlatforms();
     }
 
@@ -1571,14 +1616,24 @@
     }
 
     function teleportToStage(idx) {
-      if (!checkpoints[idx]) return;
+      const cp = checkpoints.find(c => c.idx === idx);
+      if (!cp) return;
       checkpointIdx = idx;
-      player.pos.copy(checkpoints[idx].pos);
+      player.pos.copy(cp.pos);
       player.vel.set(0, 0, 0);
       playerGroup.position.copy(player.pos);
       closeStageModal();
       document.getElementById('stage-badge').innerText = `STAGE ${idx + 1}` + (idx >= 6 ? ' (W2)' : '');
       showCheckpointToast(idx, `🚩 스테이지 ${idx + 1} 이동 완료!`);
+      checkpoints.forEach(c => {
+        if (c.idx <= idx) {
+          c.ring.material.color.setHex(0x10b981);
+          c.ring.material.emissive.setHex(0x059669);
+        } else {
+          c.ring.material.color.setHex(0xf59e0b);
+          c.ring.material.emissive.setHex(0x000000);
+        }
+      });
       resetDynamicPlatforms();
     }
 
@@ -1875,6 +1930,11 @@
             player.onGround = true;
             grounded = true;
 
+            // 플랫폼 착지 시 스테이지 체크포인트 즉시 갱신 (발판 스킵 방지)
+            if (p.stageIdx !== undefined && p.stageIdx > checkpointIdx) {
+              activateCheckpoint(p.stageIdx);
+            }
+
             // 무빙 발판 위에 서 있으면 발판과 함께 이동
             if (p.isMoving && p.deltaPos) {
               nextPos.add(p.deltaPos);
@@ -1908,8 +1968,10 @@
         }
       }
 
-      // 바닥으로 추락 시 리스폰
-      if (nextPos.y < -12.0) {
+      // 바닥으로 추락 시 리스폰 (현재 체크포인트 높이 기준 12m 아래로 떨어지면 빠른 리스폰)
+      const currentCp = checkpoints.find(c => c.idx === checkpointIdx);
+      const voidLimitY = currentCp ? (currentCp.pos.y - 12.0) : -12.0;
+      if (nextPos.y < -12.0 || nextPos.y < voidLimitY) {
         respawn();
         return;
       }
@@ -1917,16 +1979,14 @@
       player.pos.copy(nextPos);
       playerGroup.position.copy(player.pos);
 
-      // ── 체크포인트 감지 ──
+      // ── 체크포인트 감지 (발판 구역 상공 포괄 감지) ──
       checkpoints.forEach(cp => {
-        if (cp.idx > checkpointIdx) {
-          if (player.pos.distanceTo(cp.pos) < 3.2) {
-            checkpointIdx = cp.idx;
-            playCheckpointSound();
-            showCheckpointToast(cp.idx);
-            document.getElementById('stage-badge').innerText = `STAGE ${cp.idx + 1}` + (cp.idx >= 6 ? ' (W2)' : '');
-            cp.ring.material.color.setHex(0x10b981);
-            cp.ring.material.emissive.setHex(0x059669);
+        const inX = Math.abs(player.pos.x - cp.x) <= 3.2;
+        const inZ = Math.abs(player.pos.z - cp.z) <= 3.2;
+        const inY = (player.pos.y >= cp.y - 1.0) && (player.pos.y <= cp.y + 6.0);
+        if (inX && inZ && inY) {
+          if (cp.idx > checkpointIdx) {
+            activateCheckpoint(cp.idx);
           }
         }
       });
