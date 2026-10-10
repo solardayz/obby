@@ -523,6 +523,11 @@
     let gameTimer = 0;
     let isGameOver = false;
 
+    // 조작감 보정 타이머 (코요테 타임 & 점프 버퍼링)
+    let coyoteTimer = 0;
+    let jumpBufferTimer = 0;
+    let walkAnimTime = 0;
+
     // 카메라 각도
     let camYaw = 0;
     let camPitch = 0.35;
@@ -719,7 +724,8 @@
     let prevMouseY = 0;
 
     window.addEventListener('mousedown', (e) => {
-      if (e.target.tagName === 'BUTTON' || e.target.closest('#mobile-controls')) return;
+      const tgt = e.target;
+      if (tgt && (tgt.tagName === 'BUTTON' || (tgt.closest && tgt.closest('#mobile-controls')))) return;
       initAudio();
       isMouseDown = true;
       prevMouseX = e.clientX;
@@ -756,7 +762,9 @@
     window.addEventListener('touchstart', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
-        if (touch.clientX > window.innerWidth / 2 && !e.target.closest('#jump-btn') && !e.target.closest('#hud')) {
+        if (touch.clientX > window.innerWidth / 2) {
+          const tgt = e.target;
+          if (tgt && tgt.closest && (tgt.closest('#jump-btn') || tgt.closest('#hud') || tgt.closest('#mobile-controls'))) continue;
           camTouchId = touch.identifier;
           prevMouseX = touch.clientX;
           prevMouseY = touch.clientY;
@@ -907,9 +915,6 @@
     buildObby();
 
     let lastTime = performance.now();
-    let walkAnimTime = 0;
-    let coyoteTimer = 0;
-    let jumpBufferTimer = 0;
 
     function animate(time) {
       requestAnimationFrame(animate);
