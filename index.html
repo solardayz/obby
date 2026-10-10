@@ -21,9 +21,13 @@
       touch-action: none;
     }
     #game-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       display: block;
+      z-index: 1;
     }
     /* 상단 HUD */
     #hud {
@@ -40,6 +44,7 @@
     }
     .hud-card {
       background: rgba(15, 23, 42, 0.75);
+      -webkit-backdrop-filter: blur(8px);
       backdrop-filter: blur(8px);
       border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 14px;
@@ -167,6 +172,7 @@
       width: 100%;
       height: 100%;
       background: rgba(15, 23, 42, 0.85);
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       display: none;
       flex-direction: column;
@@ -286,7 +292,18 @@
     </div>
   </div>
 
+  <div id="debug-error" style="display:none; position:fixed; top:20px; left:20px; right:20px; background:#dc2626; color:#fff; padding:14px 18px; border-radius:12px; z-index:999999; font-size:14px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5);"></div>
+
   <script>
+    window.onerror = function(msg, url, line, col, err) {
+      console.error('Obby Error:', msg, line, err);
+      const box = document.getElementById('debug-error');
+      if (box) {
+        box.style.display = 'block';
+        box.innerText = '⚠️ 오류: ' + msg + ' (L' + line + ')';
+      }
+    };
+
     /* ── 1. 오디오 합성 (Web Audio API - 0초 로딩) ── */
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
@@ -405,9 +422,19 @@
 
     /* ── 2. THREE.JS 씬 & 렌더러 설정 ── */
     const canvas = document.getElementById('game-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: 'default'
+      });
+    } catch (e) {
+      renderer = new THREE.WebGLRenderer({ canvas });
+    }
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -424,8 +451,8 @@
     const dirLight = new THREE.DirectionalLight(0xfff7e6, 0.9);
     dirLight.position.set(30, 60, 40);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
     dirLight.shadow.camera.near = 0.5;
     dirLight.shadow.camera.far = 160;
     dirLight.shadow.camera.left = -40;
