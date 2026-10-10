@@ -239,6 +239,107 @@
     @media (pointer: coarse) {
       #pc-guide { display: none; }
     }
+    /* 모달 공통 */
+    .custom-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.88);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 120;
+      color: #fff;
+      text-align: center;
+      padding: 16px;
+    }
+    /* 스킨 선택 카드 그리드 */
+    .skin-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .skin-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 3px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 12px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .skin-card:active, .skin-card.active {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.2);
+      transform: scale(1.03);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+    }
+    .skin-preview {
+      font-size: 32px;
+      line-height: 1;
+    }
+    .skin-name {
+      font-weight: 900;
+      font-size: 14px;
+      color: #fff;
+    }
+    .skin-desc {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    /* 스테이지 선택 그리드 */
+    .stage-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stage-btn {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      padding: 10px 4px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .stage-btn:hover, .stage-btn:active {
+      background: #38bdf8;
+      border-color: #38bdf8;
+      color: #0f172a;
+    }
+    /* 스피드 부스트 알림 UI */
+    #boost-indicator {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #06b6d4, #2563eb);
+      color: #fff;
+      padding: 9px 24px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: 900;
+      border: 2px solid #fff;
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.85);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 25;
+    }
+    #boost-indicator.show {
+      opacity: 1;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -251,13 +352,16 @@
       <span class="badge-stage" id="stage-badge">STAGE 1</span>
       <span id="timer-text">⏱️ 00:00</span>
     </div>
-    <div style="display: flex; gap: 8px;">
-      <button class="btn-ui" id="btn-bgm" onclick="toggleBgm()">🎵 BGM ON</button>
+    <div style="display: flex; gap: 6px;">
+      <button class="btn-ui" id="btn-skin" onclick="openSkinModal()">👔 스킨</button>
+      <button class="btn-ui" id="btn-stage" onclick="openStageModal()">🗺️ 월드</button>
+      <button class="btn-ui" id="btn-bgm" onclick="toggleBgm()">🎵 BGM</button>
       <button class="btn-ui" onclick="respawn()">🔄 리셋</button>
     </div>
   </div>
 
   <div id="checkpoint-toast">🚩 체크포인트 저장!</div>
+  <div id="boost-indicator">⚡ SPEED BOOST x2!</div>
 
   <!-- PC 조작 안내 -->
   <div id="pc-guide">⌨️ WASD: 이동 | Space: 점프 | 마우스 드래그: 시점 회전 | R: 리스폰</div>
@@ -273,22 +377,87 @@
     </div>
   </div>
 
+  <!-- 스킨 선택 모달 -->
+  <div id="skin-modal" class="custom-modal">
+    <div class="modal-box">
+      <h2 style="font-size: 24px; color: #f59e0b; margin-bottom: 4px;">👔 로블록스 캐릭터 스킨</h2>
+      <p style="font-size: 13px; color: #94a3b8; margin-bottom: 14px;">원하는 스킨을 누르면 즉시 변신합니다!</p>
+      <div class="skin-grid">
+        <div class="skin-card active" id="skin-card-noob" onclick="setSkin('noob')">
+          <div class="skin-preview">🟡</div>
+          <div class="skin-name">클래식 노옵</div>
+          <div class="skin-desc">노란머리 & 파란옷</div>
+        </div>
+        <div class="skin-card" id="skin-card-bacon" onclick="setSkin('bacon')">
+          <div class="skin-preview">🥓</div>
+          <div class="skin-name">베이컨 헤어</div>
+          <div class="skin-desc">갈색머리 & 빨간자켓</div>
+        </div>
+        <div class="skin-card" id="skin-card-ninja" onclick="setSkin('ninja')">
+          <div class="skin-preview">🥷</div>
+          <div class="skin-name">그림자 닌자</div>
+          <div class="skin-desc">블랙슈트 & 붉은검</div>
+        </div>
+        <div class="skin-card" id="skin-card-gold_mecha" onclick="setSkin('gold_mecha')">
+          <div class="skin-preview">🤖</div>
+          <div class="skin-name">골드 메카</div>
+          <div class="skin-desc">황금 로봇 & 안테나</div>
+        </div>
+      </div>
+      <button class="restart-btn" style="margin-top: 16px; padding: 11px 28px;" onclick="closeSkinModal()">적용 완료</button>
+    </div>
+  </div>
+
+  <!-- 월드/스테이지 선택 모달 -->
+  <div id="stage-modal" class="custom-modal">
+    <div class="modal-box" style="max-width: 460px;">
+      <h2 style="font-size: 23px; color: #38bdf8; margin-bottom: 4px;">🗺️ 월드 & 스테이지 바로가기</h2>
+      <p style="font-size: 13px; color: #94a3b8; margin-bottom: 14px;">연습하고 싶은 구역으로 순간이동하세요!</p>
+      <div style="margin-bottom: 12px;">
+        <div style="font-size: 14px; font-weight: bold; color: #facc15; margin-bottom: 6px; text-align: left;">🌈 WORLD 1: 하늘 무지개 섬</div>
+        <div class="stage-btn-grid">
+          <button class="stage-btn" onclick="teleportToStage(0)">1. 무지개</button>
+          <button class="stage-btn" onclick="teleportToStage(1)">2. 킬 레이저</button>
+          <button class="stage-btn" onclick="teleportToStage(2)">3. 사라짐</button>
+          <button class="stage-btn" onclick="teleportToStage(3)">4. 윈드밀</button>
+          <button class="stage-btn" onclick="teleportToStage(4)">5. 나선계단</button>
+          <button class="stage-btn" onclick="teleportToStage(5)">6. 트로피</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size: 14px; font-weight: bold; color: #ec4899; margin-bottom: 6px; text-align: left;">⚡ WORLD 2: 사이버 & 2차 챌린지 (신규!)</div>
+        <div class="stage-btn-grid">
+          <button class="stage-btn" style="border-color:#22c55e; color:#4ade80;" onclick="teleportToStage(6)">7. 트램펄린</button>
+          <button class="stage-btn" style="border-color:#06b6d4; color:#38bdf8;" onclick="teleportToStage(7)">8. 부스터질주</button>
+          <button class="stage-btn" style="border-color:#a855f7; color:#c084fc;" onclick="teleportToStage(8)">9. 무빙발판</button>
+          <button class="stage-btn" style="border-color:#f43f5e; color:#fb7185;" onclick="teleportToStage(9)">10. 유리징검다리</button>
+          <button class="stage-btn" style="border-color:#eab308; color:#fde047;" onclick="teleportToStage(10)">11. 더블스핀</button>
+          <button class="stage-btn" style="border-color:#38bdf8; color:#7dd3fc;" onclick="teleportToStage(11)">12. 다이아왕관</button>
+        </div>
+      </div>
+      <button class="restart-btn" style="margin-top: 16px; padding: 10px 26px;" onclick="closeStageModal()">닫기</button>
+    </div>
+  </div>
+
   <!-- 승리 모달 -->
   <div id="victory-modal">
     <div class="modal-box">
-      <div class="trophy-anim">🏆</div>
-      <h2 style="font-size: 26px; color: #f59e0b; margin-bottom: 8px;">점프맵 완전 정복!</h2>
-      <p style="font-size: 15px; color: #94a3b8; margin-bottom: 16px;">
+      <div class="trophy-anim" id="victory-icon">🏆</div>
+      <h2 style="font-size: 25px; color: #f59e0b; margin-bottom: 8px;" id="victory-title">점프맵 완전 정복!</h2>
+      <p style="font-size: 14px; color: #94a3b8; margin-bottom: 16px;" id="victory-desc">
         아빠가 만든 3D 억까 오비(Obby)를 모두 클리어했습니다! 👑
       </p>
       <div style="background: rgba(255,255,255,0.06); padding: 12px; border-radius: 14px; margin-bottom: 16px; line-height: 1.8;">
         <div>⏱️ <b>클리어 타임:</b> <span id="final-time" style="color:#38bdf8;">00:00</span></div>
         <div>💀 <b>낙하 횟수:</b> <span id="final-deaths" style="color:#f87171;">0회</span></div>
       </div>
-      <p style="font-size: 16px; color: #fde047; font-weight: bold; margin-bottom: 6px;">
+      <p style="font-size: 16px; color: #fde047; font-weight: bold; margin-bottom: 10px;">
         "대박! 점프 천재 인정! 👏"
       </p>
-      <button class="restart-btn" onclick="restartGame()">다시 도전하기</button>
+      <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+        <button class="restart-btn" id="btn-next-world" style="margin-top: 6px; background: linear-gradient(135deg, #06b6d4, #8b5cf6);" onclick="goToWorld2()">🚀 2차 월드 바로 시작!</button>
+        <button class="restart-btn" style="margin-top: 6px;" onclick="restartGame()">처음부터 다시하기</button>
+      </div>
     </div>
   </div>
 
@@ -385,6 +554,73 @@
         gain.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + 0.5);
+      });
+    }
+
+    function playBounceSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      const now = audioCtx.currentTime;
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(750, now + 0.22);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(now + 0.23);
+    }
+
+    function playBoostSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      const now = audioCtx.currentTime;
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(1100, now + 0.28);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(now + 0.29);
+    }
+
+    function playGlassShatterSound() {
+      if (!audioCtx) return;
+      [1200, 850, 580].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        const now = audioCtx.currentTime + idx * 0.025;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      });
+    }
+
+    function playPortalSound() {
+      if (!audioCtx) return;
+      const notes = [329.63, 440, 554.37, 659.25, 880, 1108.73];
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        const now = audioCtx.currentTime + idx * 0.07;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.38);
       });
     }
 
@@ -550,15 +786,114 @@
     let gameTimer = 0;
     let isGameOver = false;
 
-    // 조작감 보정 타이머 (코요테 타임 & 점프 버퍼링)
+    // 조작감 보정 타이머 & 부스터
     let coyoteTimer = 0;
     let jumpBufferTimer = 0;
     let walkAnimTime = 0;
+    let speedBoostTimer = 0;
+    let currentSkin = 'noob';
 
     // 카메라 각도
     let camYaw = 0;
     let camPitch = 0.35;
     let camDist = 6.8;
+
+    /* ── 스킨 & 악세사리 관리 ── */
+    const accessoryGroup = new THREE.Group();
+    playerGroup.add(accessoryGroup);
+
+    function applySkin(skinId) {
+      currentSkin = skinId;
+      while (accessoryGroup.children.length > 0) {
+        accessoryGroup.remove(accessoryGroup.children[0]);
+      }
+
+      if (skinId === 'noob') {
+        headMat.color.setHex(0xffe033);
+        torsoMat.color.setHex(0x0070d6);
+        armMat.color.setHex(0xffe033);
+        legMat.color.setHex(0x48b634);
+        eyeMat.color.setHex(0x111111);
+      } else if (skinId === 'bacon') {
+        headMat.color.setHex(0xffd1a4);
+        torsoMat.color.setHex(0xdc2626);
+        armMat.color.setHex(0xffd1a4);
+        legMat.color.setHex(0x1e3a8a);
+        eyeMat.color.setHex(0x111111);
+
+        // 시그니처 베이컨 헤어
+        const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.22, 0.76), getMat(0x654321));
+        hairTop.position.set(0, 2.05, 0);
+        accessoryGroup.add(hairTop);
+
+        const hairL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.35, 0.78), getMat(0x8b5a2b));
+        hairL.position.set(-0.26, 1.84, 0);
+        accessoryGroup.add(hairL);
+
+        const hairR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.42, 0.78), getMat(0x654321));
+        hairR.position.set(0.26, 1.80, 0);
+        accessoryGroup.add(hairR);
+      } else if (skinId === 'ninja') {
+        headMat.color.setHex(0x1e293b);
+        torsoMat.color.setHex(0x0f172a);
+        armMat.color.setHex(0x1e293b);
+        legMat.color.setHex(0x0f172a);
+        eyeMat.color.setHex(0xef4444);
+
+        // 붉은 머리띠 리본
+        const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.45, 0.08), getMat(0xef4444));
+        ribbon.position.set(0, 1.62, 0.4);
+        ribbon.rotation.x = -0.35;
+        accessoryGroup.add(ribbon);
+
+        // 등에 멘 붉은 카타나
+        const sword = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.25, 0.1), getMat(0xef4444));
+        sword.position.set(0, 1.05, 0.32);
+        sword.rotation.z = 0.6;
+        accessoryGroup.add(sword);
+      } else if (skinId === 'gold_mecha') {
+        headMat.color.setHex(0xfbbf24);
+        torsoMat.color.setHex(0xd97706);
+        armMat.color.setHex(0xfbbf24);
+        legMat.color.setHex(0xb45309);
+        eyeMat.color.setHex(0x06b6d4);
+
+        // 사이버 안테나
+        const antPole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45), getMat(0x94a3b8));
+        antPole.position.set(0, 2.2, 0);
+        accessoryGroup.add(antPole);
+
+        const antOrb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), getMat(0x06b6d4, 0x06b6d4));
+        antOrb.position.set(0, 2.44, 0);
+        accessoryGroup.add(antOrb);
+      }
+    }
+
+    function setSkin(skinId) {
+      applySkin(skinId);
+      try { localStorage.setItem('obby_skin', skinId); } catch(e){}
+      document.querySelectorAll('.skin-card').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById('skin-card-' + skinId);
+      if (activeCard) activeCard.classList.add('active');
+    }
+
+    function openSkinModal() {
+      document.getElementById('skin-modal').style.display = 'flex';
+    }
+    function closeSkinModal() {
+      document.getElementById('skin-modal').style.display = 'none';
+    }
+    function openStageModal() {
+      document.getElementById('stage-modal').style.display = 'flex';
+    }
+    function closeStageModal() {
+      document.getElementById('stage-modal').style.display = 'none';
+    }
+
+    try {
+      const savedSkin = localStorage.getItem('obby_skin');
+      if (savedSkin) setSkin(savedSkin);
+    } catch(e){}
 
     /* ── 5. 스테이지 생성 (오비 맵 빌더) ── */
     const matCache = {};
@@ -587,6 +922,8 @@
         vanishState: 'solid', // solid, shaking, hidden
         vanishTime: 0,
         origX: x,
+        origY: y,
+        origZ: z,
         origCol: color,
         box: new THREE.Box3()
       };
@@ -594,8 +931,111 @@
       return plat;
     }
 
+    // 트램펄린 슈퍼 점프대
+    function addBouncePad(x, y, z, w = 3.2, d = 3.2, force = 25.0) {
+      const base = addPlatform(x, y, z, w, 0.45, d, 0x1e293b);
+      // 탄성 패드 표면 (형광 라임 그린)
+      const padMesh = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.4, w * 0.4, 0.2, 16), getMat(0x22c55e, 0x15803d));
+      padMesh.position.set(x, y + 0.3, z);
+      scene.add(padMesh);
+
+      // 용수철 코일 장식
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(w * 0.22, 0.08, 8, 16), getMat(0xfacc15, 0xca8a04));
+      coil.position.set(x, y + 0.4, z);
+      coil.rotation.x = Math.PI / 2;
+      scene.add(coil);
+
+      base.isBouncePad = true;
+      base.bounceForce = force;
+      return base;
+    }
+
+    // 스피드 부스터 패드
+    function addSpeedBoostPad(x, y, z, w = 3.2, d = 4.0) {
+      const base = addPlatform(x, y, z, w, 0.4, d, 0x0f172a);
+      // 네온 청록 화살표 패드
+      const glowPad = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.1, d * 0.85), getMat(0x06b6d4, 0x0891b2));
+      glowPad.position.set(x, y + 0.22, z);
+      scene.add(glowPad);
+
+      base.isSpeedBoost = true;
+      return base;
+    }
+
+    // 움직이는 무빙 발판
+    function addMovingPlatform(x, y, z, w, h, d, color, axis = 'x', range = 4.5, speed = 1.8) {
+      const plat = addPlatform(x, y, z, w, h, d, color);
+      plat.isMoving = true;
+      plat.moveAxis = axis;
+      plat.moveRange = range;
+      plat.moveSpeed = speed;
+      plat.originX = x;
+      plat.originY = y;
+      plat.originZ = z;
+      plat.moveTimer = Math.random() * Math.PI * 2;
+      plat.deltaPos = new THREE.Vector3();
+      return plat;
+    }
+
+    // 오징어 게임 유리 징검다리 (Real vs Fake)
+    function addGlassPair(z, y, leftIsReal) {
+      const glassMatReal = new THREE.MeshLambertMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65 });
+      const glassMatFake = new THREE.MeshLambertMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.55 });
+
+      // 왼쪽 발판
+      const geoL = new THREE.BoxGeometry(2.4, 0.3, 2.4);
+      const meshL = new THREE.Mesh(geoL, leftIsReal ? glassMatReal : glassMatFake);
+      meshL.position.set(-1.8, y, z);
+      meshL.receiveShadow = true;
+      scene.add(meshL);
+      const platL = {
+        mesh: meshL, w: 2.4, h: 0.3, d: 2.4,
+        isFakeGlass: !leftIsReal,
+        isBroken: false,
+        box: new THREE.Box3()
+      };
+      platforms.push(platL);
+
+      // 오른쪽 발판
+      const geoR = new THREE.BoxGeometry(2.4, 0.3, 2.4);
+      const meshR = new THREE.Mesh(geoR, leftIsReal ? glassMatFake : glassMatReal);
+      meshR.position.set(1.8, y, z);
+      meshR.receiveShadow = true;
+      scene.add(meshR);
+      const platR = {
+        mesh: meshR, w: 2.4, h: 0.3, d: 2.4,
+        isFakeGlass: leftIsReal,
+        isBroken: false,
+        box: new THREE.Box3()
+      };
+      platforms.push(platR);
+    }
+
+    // 2차 월드 워프 포탈
+    let portalMesh = null;
+    function addWarpPortal(x, y, z) {
+      const portalPad = addPlatform(x, y, z, 5.0, 0.45, 5.0, 0x1e1b4b);
+      portalPad.isPortal = true;
+
+      // 회전하는 보라색 포탈 링
+      const portalGeo = new THREE.TorusGeometry(1.9, 0.32, 16, 32);
+      const portalMat = new THREE.MeshLambertMaterial({ color: 0xa855f7, emissive: 0x7e22ce });
+      portalMesh = new THREE.Mesh(portalGeo, portalMat);
+      portalMesh.position.set(x, y + 2.2, z);
+      scene.add(portalMesh);
+
+      // 포탈 소용돌이 중심
+      const centerGeo = new THREE.CircleGeometry(1.6, 24);
+      const centerMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75, side: THREE.DoubleSide });
+      const centerMesh = new THREE.Mesh(centerGeo, centerMat);
+      centerMesh.position.set(x, y + 2.2, z);
+      scene.add(centerMesh);
+
+      return portalPad;
+    }
+
     function addCheckpointPad(idx, x, y, z) {
-      const pad = addPlatform(x, y, z, 5, 0.4, 5, 0x1e293b);
+      const pad = addPlatform(x, y, z, 5, 0.4, 5, idx >= 6 ? 0x0f172a : 0x1e293b);
       // 체크포인트 빛나는 링
       const ringGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.45, 24);
       const ringMat = new THREE.MeshLambertMaterial({ color: idx === 0 ? 0x10b981 : 0xf59e0b, emissive: idx === 0 ? 0x059669 : 0x000000 });
@@ -607,7 +1047,7 @@
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.5), getMat(0xffffff));
       pole.position.set(x - 2, y + 1.8, z - 2);
       scene.add(pole);
-      const flag = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.08), getMat(0xef4444));
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.08), getMat(idx >= 6 ? 0x06b6d4 : 0xef4444));
       flag.position.set(x - 1.4, y + 3.1, z - 2);
       scene.add(flag);
 
@@ -721,11 +1161,188 @@
 
       scene.add(trophyGroup);
 
-      // 승리 감지 패드
+      // 승리 감지 패드 (World 1 Goal)
       platforms.push({
         mesh: winPlat.mesh,
         w: 12, h: 1.0, d: 12,
         isGoal: true,
+        isWorld2Goal: false,
+        box: new THREE.Box3()
+      });
+
+      // ── WORLD 2 진입 워프 포탈 ──
+      addWarpPortal(0, curY, curZ - 4.5);
+
+      // ══════════════════════════════════════════════════════════
+      //  ★ WORLD 2 : 사이버 & 2차 챌린지 (Stage 7 ~ 12)
+      // ══════════════════════════════════════════════════════════
+
+      // ── STAGE 7: 슈퍼 트램펄린 고공 점프 (Bounce Pads) ──
+      curZ -= 20;
+      curY += 1.0;
+      addCheckpointPad(6, 0, curY, curZ);
+
+      // 첫 번째 트램펄린 (지상 -> 고공 섬)
+      addBouncePad(0, curY, curZ - 7, 3.4, 3.4, 25.0);
+
+      // 공중 높은 구름 발판 1
+      curZ -= 20;
+      curY += 6.5;
+      addPlatform(0, curY, curZ, 3.8, 0.5, 3.8, 0x10b981);
+
+      // 두 번째 트램펄린 (고공 -> 초고공 아일랜드)
+      addBouncePad(0, curY, curZ - 7, 3.4, 3.4, 26.5);
+
+      // 초고공 아일랜드 2
+      curZ -= 22;
+      curY += 7.0;
+      addPlatform(0, curY, curZ, 4.2, 0.5, 4.2, 0x06b6d4);
+
+      // ── STAGE 8: 초고속 스피드 부스터 질주 (Speed Boost Runway) ──
+      curZ -= 10;
+      curY += 0.5;
+      addCheckpointPad(7, 0, curY, curZ);
+
+      // 부스터 가속 활주로
+      curZ -= 6;
+      addSpeedBoostPad(0, curY, curZ, 3.2, 4.0);
+      curZ -= 5;
+      addSpeedBoostPad(0, curY, curZ, 3.2, 4.0);
+
+      // 거대 낭떠러지 + 아래에 킬 레이저 그리드
+      addPlatform(0, curY - 2.5, curZ - 9, 8.0, 0.35, 14.0, 0xff0033, true);
+
+      // 부스터로만 날아갈 수 있는 착지 섬 (14미터 도약!)
+      curZ -= 18;
+      addPlatform(0, curY, curZ, 4.5, 0.5, 4.5, 0x3b82f6);
+
+      // ── STAGE 9: 좌우 & 상하 무빙 발판 (Moving Platforms) ──
+      curZ -= 9;
+      curY += 0.5;
+      addCheckpointPad(8, 0, curY, curZ);
+
+      // 무빙 발판 1 (좌우 흔들림)
+      curZ -= 8;
+      addMovingPlatform(0, curY, curZ, 3.0, 0.45, 3.0, 0xa855f7, 'x', 4.5, 1.8);
+
+      // 중간 휴식 발판
+      curZ -= 8;
+      addPlatform(0, curY + 0.5, curZ, 2.8, 0.45, 2.8, 0x334155);
+
+      // 무빙 발판 2 (앞뒤 왕복)
+      curZ -= 8;
+      curY += 0.5;
+      addMovingPlatform(0, curY, curZ, 3.0, 0.45, 3.0, 0xec4899, 'z', 3.8, 1.6);
+
+      // 무빙 발판 3 (엘리베이터 상하 수직 이동)
+      curZ -= 9;
+      curY += 1.5;
+      addMovingPlatform(0, curY, curZ, 3.2, 0.45, 3.2, 0xfacc15, 'y', 3.2, 1.4);
+
+      // 엘리베이터 상단 착지 섬
+      curZ -= 8;
+      curY += 4.5;
+      addPlatform(0, curY, curZ, 4.0, 0.5, 4.0, 0x1e293b);
+
+      // ── STAGE 10: 오징어 게임 유리 징검다리 (Squid Game Glass Bridge) ──
+      curZ -= 8;
+      curY += 0.5;
+      addCheckpointPad(9, 0, curY, curZ);
+
+      // 4쌍의 유리 발판 (진짜 vs 깨지는 가짜)
+      // 1열: 왼쪽 진짜, 오른쪽 가짜
+      addGlassPair(curZ - 5, curY, true);
+      // 2열: 왼쪽 가짜, 오른쪽 진짜
+      addGlassPair(curZ - 10, curY, false);
+      // 3열: 왼쪽 가짜, 오른쪽 진짜
+      addGlassPair(curZ - 15, curY, false);
+      // 4열: 왼쪽 진짜, 오른쪽 가짜
+      addGlassPair(curZ - 20, curY, true);
+
+      // 유리다리 출구 안전 발판
+      curZ -= 26;
+      addPlatform(0, curY, curZ, 4.5, 0.5, 4.5, 0x22c55e);
+
+      // ── STAGE 11: 더블 십자 회전 킬 레이저 아레나 (Double Cross Spinner) ──
+      curZ -= 9;
+      curY += 0.5;
+      addCheckpointPad(10, 0, curY, curZ);
+
+      curZ -= 10;
+      // 대형 회전 아레나
+      addPlatform(0, curY, curZ, 12, 0.6, 12, 0x0f172a);
+
+      const crossSpinnerGroup = new THREE.Group();
+      crossSpinnerGroup.position.set(0, curY + 0.7, curZ);
+      scene.add(crossSpinnerGroup);
+
+      const crossPost = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.3), getMat(0x64748b));
+      crossSpinnerGroup.add(crossPost);
+
+      // 4방향 십자 킬 레이저 바
+      const killBarCross1 = new THREE.Mesh(new THREE.BoxGeometry(11.2, 0.45, 0.45), getMat(0xff0033, 0xff0033));
+      killBarCross1.position.y = 0.2;
+      crossSpinnerGroup.add(killBarCross1);
+
+      const killBarCross2 = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 11.2), getMat(0xff0033, 0xff0033));
+      killBarCross2.position.y = 0.2;
+      crossSpinnerGroup.add(killBarCross2);
+
+      platforms.push({
+        mesh: killBarCross1,
+        group: crossSpinnerGroup,
+        w: 11.2, h: 0.45, d: 0.45,
+        isLaser: true,
+        isSpinning: true,
+        speed: 2.0,
+        box: new THREE.Box3()
+      });
+      platforms.push({
+        mesh: killBarCross2,
+        group: crossSpinnerGroup,
+        w: 0.45, h: 0.45, d: 11.2,
+        isLaser: true,
+        isSpinning: true,
+        speed: 2.0,
+        box: new THREE.Box3()
+      });
+
+      // ── STAGE 12: 최종 챔피언 다이아몬드 타워 & 우주 왕관 (FINAL GOAL!) ──
+      curZ -= 16;
+      curY += 2.0;
+      addCheckpointPad(11, 0, curY, curZ);
+
+      curZ -= 14;
+      curY += 1.5;
+      const winPlat2 = addPlatform(0, curY, curZ, 14, 1.2, 14, 0x1e1b4b);
+
+      // 거대 다이아몬드 트로피 & 왕관 그룹
+      const diamondGroup = new THREE.Group();
+      diamondGroup.position.set(0, curY + 2.5, curZ);
+
+      // 받침대
+      const dBase = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.2, 1.0, 8), getMat(0x3b82f6));
+      diamondGroup.add(dBase);
+
+      // 거대 다이아몬드
+      const diamondMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5, 0), getMat(0x38bdf8, 0x0284c7));
+      diamondMesh.position.y = 2.0;
+      diamondGroup.add(diamondMesh);
+
+      // 황금 왕관
+      const crown = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.28, 8, 16), getMat(0xfbbf24, 0xf59e0b));
+      crown.position.y = 3.6;
+      crown.rotation.x = Math.PI / 2;
+      diamondGroup.add(crown);
+
+      scene.add(diamondGroup);
+
+      // 최종 승리 감지 패드
+      platforms.push({
+        mesh: winPlat2.mesh,
+        w: 14, h: 1.2, d: 14,
+        isGoal: true,
+        isWorld2Goal: true,
         box: new THREE.Box3()
       });
 
@@ -860,7 +1477,8 @@
     });
 
     /* ── 7. 리스폰 & 게임 오버 / 클리어 처리 ── */
-    function resetVanishingPlatforms() {
+    function resetDynamicPlatforms() {
+      speedBoostTimer = 0;
       platforms.forEach(p => {
         if (p.isVanishing) {
           p.vanishState = 'solid';
@@ -869,29 +1487,37 @@
           if (p.origX !== undefined) p.mesh.position.x = p.origX;
           if (p.origCol) p.mesh.material.color.setHex(p.origCol);
         }
+        if (p.isFakeGlass) {
+          p.isBroken = false;
+          p.mesh.visible = true;
+        }
       });
+      const boostEl = document.getElementById('boost-indicator');
+      if (boostEl) boostEl.classList.remove('show');
     }
 
     function respawn() {
       playOofSound();
       deathCount++;
       const cp = checkpoints[checkpointIdx];
-      player.pos.copy(cp.pos);
+      if (cp) {
+        player.pos.copy(cp.pos);
+      }
       player.vel.set(0, 0, 0);
       playerGroup.position.copy(player.pos);
       coyoteTimer = 0;
       jumpBufferTimer = 0;
-      resetVanishingPlatforms();
+      resetDynamicPlatforms();
     }
 
-    function showCheckpointToast(idx) {
+    function showCheckpointToast(idx, customMsg) {
       const toast = document.getElementById('checkpoint-toast');
-      toast.innerText = `🚩 체크포인트 ${idx + 1} 통과!`;
+      toast.innerText = customMsg || `🚩 체크포인트 ${idx + 1} 통과!`;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 1800);
     }
 
-    function triggerVictory() {
+    function triggerVictory(world = 1) {
       if (isGameOver) return;
       isGameOver = true;
       playWinSound();
@@ -899,8 +1525,50 @@
       const s = Math.floor(gameTimer % 60);
       document.getElementById('final-time').innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
       document.getElementById('final-deaths').innerText = `${deathCount}회`;
+
+      const titleEl = document.getElementById('victory-title');
+      const descEl = document.getElementById('victory-desc');
+      const iconEl = document.getElementById('victory-icon');
+      const nextBtn = document.getElementById('btn-next-world');
+
+      if (world === 1) {
+        if (iconEl) iconEl.innerText = '🏆';
+        if (titleEl) titleEl.innerText = '🌈 WORLD 1 완전 정복!';
+        if (descEl) descEl.innerText = '하늘 무지개 섬을 모두 클리어했습니다! 2차 월드(Stage 7~12)로 바로 이어서 도전하시겠습니까?';
+        if (nextBtn) nextBtn.style.display = 'inline-block';
+      } else {
+        if (iconEl) iconEl.innerText = '👑';
+        if (titleEl) titleEl.innerText = '💎 WORLD 1 & 2 최종 마스터!';
+        if (descEl) descEl.innerText = '아빠가 만든 3D 로블록스 점프맵 전 스테이지(12단계)를 완전 정복했습니다! 👑👏';
+        if (nextBtn) nextBtn.style.display = 'none';
+      }
+
       document.getElementById('victory-modal').style.display = 'flex';
       spawnConfetti();
+    }
+
+    function goToWorld2() {
+      document.getElementById('victory-modal').style.display = 'none';
+      isGameOver = false;
+      teleportToStage(6);
+    }
+
+    function teleportToStage(idx) {
+      if (!checkpoints[idx]) return;
+      checkpointIdx = idx;
+      player.pos.copy(checkpoints[idx].pos);
+      player.vel.set(0, 0, 0);
+      playerGroup.position.copy(player.pos);
+      closeStageModal();
+      document.getElementById('stage-badge').innerText = `STAGE ${idx + 1}` + (idx >= 6 ? ' (W2)' : '');
+      showCheckpointToast(idx, `🚩 스테이지 ${idx + 1} 이동 완료!`);
+      resetDynamicPlatforms();
+    }
+
+    function triggerWarpToWorld2() {
+      playPortalSound();
+      teleportToStage(6);
+      showCheckpointToast(6, '🌀 WORLD 2 (2차 월드) 포탈 진입 성공!');
     }
 
     function restartGame() {
@@ -914,7 +1582,7 @@
         cp.ring.material.color.setHex(idx === 0 ? 0x10b981 : 0xf59e0b);
         cp.ring.material.emissive.setHex(idx === 0 ? 0x059669 : 0x000000);
       });
-      resetVanishingPlatforms();
+      resetDynamicPlatforms();
       respawn();
     }
 
@@ -955,11 +1623,48 @@
         document.getElementById('timer-text').innerText = `⏱️ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
       }
 
-      // 회전 장애물 업데이트
+      // 포탈 링 애니메이션
+      if (portalMesh) {
+        portalMesh.rotation.z += 1.8 * delta;
+      }
+
+      // 스피드 부스터 타이머
+      if (speedBoostTimer > 0) {
+        speedBoostTimer = Math.max(0, speedBoostTimer - delta);
+        const boostEl = document.getElementById('boost-indicator');
+        if (boostEl) boostEl.classList.add('show');
+      } else {
+        const boostEl = document.getElementById('boost-indicator');
+        if (boostEl) boostEl.classList.remove('show');
+      }
+      const actualSpeed = (speedBoostTimer > 0) ? player.speed * 1.85 : player.speed;
+
+      // 동적 장애물 업데이트 (회전 바, 사라지는 발판, 무빙 발판)
       platforms.forEach(p => {
         if (p.isSpinning && p.group) {
           p.group.rotation.y += p.speed * delta;
         }
+
+        // 좌우 / 상하 무빙 발판
+        if (p.isMoving) {
+          const prevX = p.mesh.position.x;
+          const prevY = p.mesh.position.y;
+          const prevZ = p.mesh.position.z;
+          p.moveTimer = (p.moveTimer || 0) + delta * p.moveSpeed;
+          if (p.moveAxis === 'x') {
+            p.mesh.position.x = p.originX + Math.sin(p.moveTimer) * p.moveRange;
+          } else if (p.moveAxis === 'y') {
+            p.mesh.position.y = p.originY + Math.sin(p.moveTimer) * p.moveRange;
+          } else if (p.moveAxis === 'z') {
+            p.mesh.position.z = p.originZ + Math.sin(p.moveTimer) * p.moveRange;
+          }
+          p.deltaPos.set(
+            p.mesh.position.x - prevX,
+            p.mesh.position.y - prevY,
+            p.mesh.position.z - prevZ
+          );
+        }
+
         // 사라지는 발판 타이머
         if (p.isVanishing) {
           if (p.vanishState === 'shaking') {
@@ -1017,8 +1722,8 @@
         const moveAngle = Math.atan2(inputX, inputZ) + camYaw;
         moveVec.set(Math.sin(moveAngle), 0, Math.cos(moveAngle)).normalize();
         const speedScale = Math.min(1.0, inputMag);
-        player.vel.x = moveVec.x * player.speed * speedScale;
-        player.vel.z = moveVec.z * player.speed * speedScale;
+        player.vel.x = moveVec.x * actualSpeed * speedScale;
+        player.vel.z = moveVec.z * actualSpeed * speedScale;
 
         // 플레이어 바라보는 각도 회전
         playerGroup.rotation.y = moveAngle + Math.PI;
@@ -1079,6 +1784,7 @@
       for (let i = 0; i < platforms.length; i++) {
         const p = platforms[i];
         if (p.isVanishing && p.vanishState === 'hidden') continue;
+        if (p.isFakeGlass && p.isBroken) continue;
 
         if (p.isSpinning && p.group) {
           p.box.setFromObject(p.mesh);
@@ -1092,9 +1798,23 @@
             respawn();
             return;
           }
-          // 골 도달 -> 승리
+          // 오징어 게임 가짜 유리 발판 -> 밟으면 와장창 깨짐
+          if (p.isFakeGlass) {
+            if (!p.isBroken) {
+              p.isBroken = true;
+              p.mesh.visible = false;
+              playGlassShatterSound();
+            }
+            continue;
+          }
+          // 워프 포탈 닿음 -> 2차 월드로 텔레포트
+          if (p.isPortal) {
+            triggerWarpToWorld2();
+            return;
+          }
+          // 골 도달 -> 승리 (World 1 vs World 2)
           if (p.isGoal) {
-            triggerVictory();
+            triggerVictory(p.isWorld2Goal ? 2 : 1);
           }
           // 발판 위 착지 판정
           if (player.pos.y >= p.box.max.y - 0.35 && player.vel.y <= 0) {
@@ -1103,8 +1823,26 @@
             player.onGround = true;
             grounded = true;
 
+            // 무빙 발판 위에 서 있으면 발판과 함께 이동
+            if (p.isMoving && p.deltaPos) {
+              nextPos.add(p.deltaPos);
+            }
+
+            // 트램펄린 슈퍼 점프대
+            if (p.isBouncePad) {
+              player.vel.y = p.bounceForce || 25.0;
+              player.onGround = false;
+              playBounceSound();
+            }
+
+            // 스피드 부스터 패드
+            if (p.isSpeedBoost) {
+              if (speedBoostTimer <= 0) playBoostSound();
+              speedBoostTimer = 2.4;
+            }
+
             // 착지 시 조작 입력이 없으면 수평 속도 완전 소멸 (착지 미끄러짐 방지)
-            if (!hasInput) {
+            if (!hasInput && !p.isBouncePad) {
               player.vel.x = 0;
               player.vel.z = 0;
             }
@@ -1134,7 +1872,7 @@
             checkpointIdx = cp.idx;
             playCheckpointSound();
             showCheckpointToast(cp.idx);
-            document.getElementById('stage-badge').innerText = `STAGE ${cp.idx + 1}`;
+            document.getElementById('stage-badge').innerText = `STAGE ${cp.idx + 1}` + (cp.idx >= 6 ? ' (W2)' : '');
             cp.ring.material.color.setHex(0x10b981);
             cp.ring.material.emissive.setHex(0x059669);
           }
