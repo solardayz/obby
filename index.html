@@ -510,7 +510,7 @@
       pos: new THREE.Vector3(0, 3, 0),
       vel: new THREE.Vector3(),
       onGround: false,
-      speed: 12.0,
+      speed: 10.5,
       jumpForce: 13.5,
       radius: 0.5,
       height: 1.9
@@ -554,6 +554,8 @@
         isVanishing,
         vanishState: 'solid', // solid, shaking, hidden
         vanishTime: 0,
+        origX: x,
+        origCol: color,
         box: new THREE.Box3()
       };
       platforms.push(plat);
@@ -742,6 +744,7 @@
     const joyKnob = document.getElementById('joystick-knob');
     let joyTouchId = null;
     let joyInput = { x: 0, y: 0 };
+    let camTouchId = null;
 
     joyArea.addEventListener('touchstart', (e) => {
       initAudio();
@@ -750,17 +753,27 @@
       updateJoystick(touch);
     });
 
+    window.addEventListener('touchstart', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.clientX > window.innerWidth / 2 && !e.target.closest('#jump-btn') && !e.target.closest('#hud')) {
+          camTouchId = touch.identifier;
+          prevMouseX = touch.clientX;
+          prevMouseY = touch.clientY;
+        }
+      }
+    });
+
     window.addEventListener('touchmove', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch.identifier === joyTouchId) {
           updateJoystick(touch);
-        } else if (!isMouseDown && touch.clientX > window.innerWidth / 2) {
-          // 화면 오른쪽 터치 드래그로 카메라 회전
-          if (prevMouseX !== 0) {
-            camYaw -= (touch.clientX - prevMouseX) * 0.008;
-            camPitch = Math.max(0.1, Math.min(1.2, camPitch + (touch.clientY - prevMouseY) * 0.006));
-          }
+        } else if (touch.identifier === camTouchId) {
+          const dx = touch.clientX - prevMouseX;
+          const dy = touch.clientY - prevMouseY;
+          camYaw -= dx * 0.008;
+          camPitch = Math.max(0.1, Math.min(1.2, camPitch + dy * 0.006));
           prevMouseX = touch.clientX;
           prevMouseY = touch.clientY;
         }
@@ -774,7 +787,8 @@
           joyTouchId = null;
           joyInput = { x: 0, y: 0 };
           joyKnob.style.transform = `translate(-50%, -50%)`;
-        } else {
+        } else if (touch.identifier === camTouchId) {
+          camTouchId = null;
           prevMouseX = 0;
           prevMouseY = 0;
         }
@@ -811,6 +825,18 @@
     });
 
     /* ── 7. 리스폰 & 게임 오버 / 클리어 처리 ── */
+    function resetVanishingPlatforms() {
+      platforms.forEach(p => {
+        if (p.isVanishing) {
+          p.vanishState = 'solid';
+          p.vanishTime = 0;
+          p.mesh.visible = true;
+          if (p.origX !== undefined) p.mesh.position.x = p.origX;
+          if (p.origCol) p.mesh.material.color.setHex(p.origCol);
+        }
+      });
+    }
+
     function respawn() {
       playOofSound();
       deathCount++;
@@ -818,6 +844,9 @@
       player.pos.copy(cp.pos);
       player.vel.set(0, 0, 0);
       playerGroup.position.copy(player.pos);
+      coyoteTimer = 0;
+      jumpBufferTimer = 0;
+      resetVanishingPlatforms();
     }
 
     function showCheckpointToast(idx) {
@@ -850,6 +879,7 @@
         cp.ring.material.color.setHex(idx === 0 ? 0x10b981 : 0xf59e0b);
         cp.ring.material.emissive.setHex(idx === 0 ? 0x059669 : 0x000000);
       });
+      resetVanishingPlatforms();
       respawn();
     }
 
@@ -878,6 +908,8 @@
 
     let lastTime = performance.now();
     let walkAnimTime = 0;
+    let coyoteTimer = 0;
+    let jumpBufferTimer = 0;
 
     function animate(time) {
       requestAnimationFrame(animate);
@@ -900,12 +932,13 @@
         if (p.isVanishing) {
           if (p.vanishState === 'shaking') {
             p.vanishTime += delta;
-            p.mesh.position.x += (Math.random() - 0.5) * 0.08;
+            p.mesh.position.x = (p.origX !== undefined ? p.origX : p.mesh.position.x) + (Math.random() - 0.5) * 0.12;
             p.mesh.material.color.setHex(0xf97316);
             if (p.vanishTime >= 0.55) {
               p.vanishState = 'hidden';
               p.vanishTime = 0;
               p.mesh.visible = false;
+              if (p.origX !== undefined) p.mesh.position.x = p.origX;
             }
           } else if (p.vanishState === 'hidden') {
             p.vanishTime += delta;
@@ -913,7 +946,8 @@
               p.vanishState = 'solid';
               p.vanishTime = 0;
               p.mesh.visible = true;
-              p.mesh.material.color.setHex(0x38bdf8);
+              if (p.origX !== undefined) p.mesh.position.x = p.origX;
+              p.mesh.material.color.setHex(p.origCol || 0x38bdf8);
             }
           }
         }
@@ -942,34 +976,61 @@
         inputZ = -joyInput.y;
       }
 
+      const inputMag = Math.hypot(inputX, inputZ);
+      const hasInput = inputMag > 0.05;
+
       // 카메라 각도 기준 이동 방향 벡터 변환
       const moveVec = new THREE.Vector3();
-      if (Math.abs(inputX) > 0.01 || Math.abs(inputZ) > 0.01) {
+      if (hasInput) {
         const moveAngle = Math.atan2(inputX, inputZ) + camYaw;
         moveVec.set(Math.sin(moveAngle), 0, Math.cos(moveAngle)).normalize();
-        player.vel.x = moveVec.x * player.speed;
-        player.vel.z = moveVec.z * player.speed;
+        const speedScale = Math.min(1.0, inputMag);
+        player.vel.x = moveVec.x * player.speed * speedScale;
+        player.vel.z = moveVec.z * player.speed * speedScale;
 
         // 플레이어 바라보는 각도 회전
         playerGroup.rotation.y = moveAngle + Math.PI;
 
         walkAnimTime += delta * 14;
       } else {
-        player.vel.x *= Math.pow(0.001, delta);
-        player.vel.z *= Math.pow(0.001, delta);
+        // ★ 미끄러짐 완전 해결: 지상에서는 손을 떼는 즉시 칼같이 0 정지
+        if (player.onGround) {
+          player.vel.x = 0;
+          player.vel.z = 0;
+        } else {
+          // 공중에서 손을 떼었을 때도 급감속하여 착지점 오버슈팅 방지
+          player.vel.x *= Math.pow(0.00001, delta);
+          player.vel.z *= Math.pow(0.00001, delta);
+          if (Math.abs(player.vel.x) < 0.02) player.vel.x = 0;
+          if (Math.abs(player.vel.z) < 0.02) player.vel.z = 0;
+        }
         walkAnimTime = 0;
       }
 
-      // 점프 입력
+      // 점프 버퍼링 & 코요테 타임 (착지 직전 점프 및 모서리 점프 유예)
+      if (player.onGround) {
+        coyoteTimer = 0.12;
+      } else {
+        coyoteTimer = Math.max(0, coyoteTimer - delta);
+      }
+
       const wantJump = keys['Space'] || mobileJump;
-      if (wantJump && player.onGround) {
+      if (wantJump) {
+        jumpBufferTimer = 0.15;
+      } else {
+        jumpBufferTimer = Math.max(0, jumpBufferTimer - delta);
+      }
+
+      if (jumpBufferTimer > 0 && (player.onGround || coyoteTimer > 0)) {
         player.vel.y = player.jumpForce;
         player.onGround = false;
+        coyoteTimer = 0;
+        jumpBufferTimer = 0;
         playJumpSound();
       }
 
-      // 중력 적용
-      player.vel.y -= 30.0 * delta;
+      // 중력 적용 (로블록스처럼 탄력 있는 점프와 낙하)
+      player.vel.y -= 32.0 * delta;
 
       // 위치 전진 계산
       const nextPos = player.pos.clone().addScaledVector(player.vel, delta);
@@ -1009,6 +1070,12 @@
             player.vel.y = 0;
             player.onGround = true;
             grounded = true;
+
+            // 착지 시 조작 입력이 없으면 수평 속도 완전 소멸 (착지 미끄러짐 방지)
+            if (!hasInput) {
+              player.vel.x = 0;
+              player.vel.z = 0;
+            }
 
             // 사라지는 발판 밟았을 때 카운트다운 시작
             if (p.isVanishing && p.vanishState === 'solid') {
